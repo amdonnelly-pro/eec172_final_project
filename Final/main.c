@@ -114,16 +114,12 @@ void main()
             unsigned long sw3 = GPIOPinRead(GPIOA1_BASE, GPIO_PIN_5);
             unsigned long sw2 = GPIOPinRead(GPIOA2_BASE, GPIO_PIN_6);
             if (sw2 != 0) {
-                if (activeProcess != 1) {
-                    Message("\nSwitch 2 pressed\n\r");
-                    // Update server (POST request)
-                }
+                Message("\nSwitch 2 pressed\n\r");
+                // Update server (POST request)
             }
             if (sw3 != 0) {
-                if (activeProcess != 2) {
-                    Message("\nSwitch 3 pressed\n\r");
-                    // Update server (POST request)
-                }
+                Message("\nSwitch 3 pressed\n\r");
+                // Update server (POST request)
             }
 
             // Fetch lat,lng coords from server (GET request)
