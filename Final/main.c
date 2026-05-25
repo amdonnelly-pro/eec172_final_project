@@ -15,6 +15,7 @@
 #include "uart.h"
 #include "uart_if.h"
 #include "i2c_if.h"
+#include "i2s.h"
 
 // IMPORTED FROM LAB 2
 #include "hw_apps_rcm.h"
@@ -30,6 +31,8 @@
 #include "gpio_if.h"
 #include "pinmux.h"
 
+#include "speaker.h"
+
 #define APPLICATION_VERSION     "1.4.0"
 #define APP_NAME                "Final Project"
 #define UART_PRINT              Report
@@ -41,7 +44,7 @@
 #define RET_IF_ERR(Func)          {int iRetVal = (Func); \
                                    if (SUCCESS != iRetVal) \
                                      return  iRetVal;}
-#define SPI_IF_BIT_RATE  100000
+#define MASTER_MODE  0
 
 
 //*****************************************************************************
@@ -86,16 +89,6 @@ void Init_GPS_UART(void)
                             9600, (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                             UART_CONFIG_PAR_NONE));
 
-    // 2. Enable the UART module
-    MAP_UARTEnable(UARTA1_BASE);
-}
-
-void Init_DAC_I2S(void)
-{
-    MAP_I2SConfigSetExpClk(I2S_BASE, MAP_PRCMPeripheralClockGet(PRCM_I2S),
-                           8000, I2S_SLOT_SIZE_16, I2S_PORT_STEREO);
-
-    // 2. Enable the UART module
     MAP_UARTEnable(UARTA1_BASE);
 }
 
@@ -116,28 +109,47 @@ void main()
     // Establish I2S
     Init_DAC_I2S();
 
-    while (True) {
-        // Fetch lat,lng coords from GPS module (UART communication)
-        // sent as ASCII chars across UART
-        char buffer[128];
-        int idx = 0;
-        while (idx < 128) {
-            char c = UARTCharGet(UARTA1_BASE);
-            if (c == '\n') {
-                buffer[idx] = '\0';
-                break;
+    while (1) {
+        if (MASTER_MODE) {
+            unsigned long sw3 = GPIOPinRead(GPIOA1_BASE, GPIO_PIN_5);
+            unsigned long sw2 = GPIOPinRead(GPIOA2_BASE, GPIO_PIN_6);
+            if (sw2 != 0) {
+                if (activeProcess != 1) {
+                    Message("\nSwitch 2 pressed\n\r");
+                    // Update server (POST request)
+                }
             }
-            buffer[idx] = c;
-            idx++;
+            if (sw3 != 0) {
+                if (activeProcess != 2) {
+                    Message("\nSwitch 3 pressed\n\r");
+                    // Update server (POST request)
+                }
+            }
+
+            // Fetch lat,lng coords from server (GET request)
+            // Redraw marker relative to center of Kemper hallway
+        } else {
+            // Fetch lat,lng coords from GPS module (UART communication)
+            char buffer[128];
+            int idx = 0;
+            while (idx < 128) {
+                char c = UARTCharGet(UARTA1_BASE);  // sent as ASCII chars across UART
+                if (c == '\n') {
+                    buffer[idx] = '\0';
+                    break;
+                }
+                buffer[idx] = c;
+                idx++;
+            }
+            Message(buffer);
+
+            // Update server (POST request)
+            // Fetch directions from server (GET request)
+            // Play audio (I2S communication)
+            PlaySound();
+
+            // Sleep
+            delay(50);
         }
-        Message(buffer);
-
-        // Update server (POST request)
-        // Fetch directions from server (GET request)
-        // Play audio (I2S communication)
-
-
-        // Sleep
-        delay(50);
     }
 }
