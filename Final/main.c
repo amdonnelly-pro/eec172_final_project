@@ -92,44 +92,39 @@ void Init_GPS_UART(void)
     MAP_UARTEnable(UARTA1_BASE);
 }
 
+char* parseSegment(char* start_pntr, char* buffer) {
+    char* end_pntr = strstr(start_pntr, ",");
+    int length = (int)(end_pntr - start_pntr);
+    strncpy(buffer, start_pntr, length);
+    buffer[length] = '\0';
+
+    return end_pntr;
+}
+
 //*****************************************************************************
 void main()
 {
-    // Initial board configurations
     BoardInit();
     PinMuxConfig();
 
     InitTerm();
     ClearTerm();
-    Message("Debugging via print statements !\n\r");
 
-    // Establish UART
     Init_GPS_UART();
 
-    // Establish I2S
-    Init_DAC_I2S();
+    Report("Debugging via print statements !\n\r");
 
-    while (1) {
-        if (MASTER_MODE) {
-            unsigned long sw3 = GPIOPinRead(GPIOA1_BASE, GPIO_PIN_5);
-            unsigned long sw2 = GPIOPinRead(GPIOA2_BASE, GPIO_PIN_6);
-            if (sw2 != 0) {
-                Message("\nSwitch 2 pressed\n\r");
-                // Update server (POST request)
-            }
-            if (sw3 != 0) {
-                Message("\nSwitch 3 pressed\n\r");
-                // Update server (POST request)
-            }
+    while (1)
+    {
+        MAP_UtilsDelay(1000000);
 
-            // Fetch lat,lng coords from server (GET request)
-            // Redraw marker relative to center of Kemper hallway
-        } else {
-            // Fetch lat,lng coords from GPS module (UART communication)
-            char buffer[128];
-            int idx = 0;
-            while (idx < 128) {
-                char c = UARTCharGet(UARTA1_BASE);  // sent as ASCII chars across UART
+        // Fetch lat,lng coords from GPS module (UART communication)
+        char buffer[128];
+        int idx = 0;
+        while (idx < 128) {
+            if (MAP_UARTCharsAvail(UARTA1_BASE))
+            {
+                char c = MAP_UARTCharGet(UARTA1_BASE);
                 if (c == '\n') {
                     buffer[idx] = '\0';
                     break;
@@ -137,15 +132,39 @@ void main()
                 buffer[idx] = c;
                 idx++;
             }
-            Message(buffer);
+            else
+            {
+                // Report("No data\r\n");
+            }
+        }
+        Message("\nFull Message: \r\n");
+        Message(buffer);
 
-            // Update server (POST request)
-            // Fetch directions from server (GET request)
-            // Play audio (I2S communication)
-            PlaySound();
+        char x[100];
+        char dir1[100];
+        char y[100];
+        char dir2[100];
 
-            // Sleep
-            delay(50);
+
+        // Find the first occurrence of sub in str
+        char* result = strstr(buffer, "$GPRMC");
+
+        if (result != NULL) {
+            result = strstr(result, ",");
+            int i;
+            for (i = 0; i<2; i++) {
+                result = strstr(result + 1, ",");
+            }
+            char* start_pntr = result + 1;
+            char* end_pntr = parseSegment(start_pntr, x);
+            end_pntr = parseSegment(end_pntr + 1, dir1);
+            end_pntr = parseSegment(end_pntr + 1, y);
+            end_pntr = parseSegment(end_pntr + 1, dir2);
+
+            printf("Substring found!\n");
+            printf("Full text from match: %s %s %s %s\n", x, dir1, y, dir2);
+        } else {
+            printf("Substring not found.\n");
         }
     }
 }
