@@ -36,7 +36,7 @@
 //
 //*****************************************************************************
 
-// This file was automatically generated on 6/1/2026 at 3:56:34 PM
+// This file was automatically generated on 6/1/2026 at 4:00:47 PM
 // by TI PinMux version 4.0.1543 
 //
 //*****************************************************************************
@@ -50,8 +50,10 @@
 #include "prcm.h"
 
 //*****************************************************************************
-void PinMuxConfigMaster(void)
+void PinMuxConfig(void)
 {
+
+
     //
     // Set unused pins to PIN_MODE_0 with the exception of JTAG pins 16,17,19,20
     //
